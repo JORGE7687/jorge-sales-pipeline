@@ -86,10 +86,28 @@
   /* Modal */
   .overlay{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; padding:16px;}
   .overlay.show{display:flex;}
-  .modal{background:#fff; width:min(760px, 100%); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.25); border:1px solid var(--line); overflow:hidden;}
+  /* iOS PWA fix: make the modal scroll properly and keep footer buttons always reachable */
+  .modal{
+    background:#fff;
+    width:min(760px, 100%);
+    border-radius:16px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+    border:1px solid var(--line);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
   .modalHeader{padding:14px 14px 10px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px;}
   .modalTitle{font-weight:900;}
-  .modalBody{padding:14px; display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .modalBody{
+    padding:14px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    flex:1;
+  }
   .modalBody .full{grid-column:1 / -1;}
   label{font-size:12px; color:#475569; display:block; margin-bottom:6px;}
   input, textarea, select{
@@ -97,7 +115,18 @@
     font-size:13px; background:#fff;
   }
   textarea{min-height:110px; resize:vertical;}
-  .modalFooter{padding:12px 14px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;}
+  .modalFooter{
+    padding:12px 14px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    flex-wrap:wrap;
+    position:sticky;
+    bottom:0;
+    background:#fff;
+  }
   .small{font-size:12px; color:#64748b;}
   @media (max-width:760px){
     .modalBody{grid-template-columns:1fr;}
