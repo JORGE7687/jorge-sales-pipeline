@@ -12,7 +12,23 @@
 
 <script>
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+    window.addEventListener("load", async () => {
+      try{
+        const reg = await navigator.serviceWorker.register("./sw.js");
+        // If a new SW is waiting, refresh once so users don't get stuck on an old cached build.
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+      }catch(e){ /* ignore */ }
+    });
+
+    // Refresh the page when the service worker updates (helps iOS users see the latest build).
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      location.reload();
+    });
   }
 </script>
 
@@ -231,10 +247,93 @@
 
 <script>
 const STORAGE_KEY = "jorge_sales_pipeline_app_v3";
+const STORAGE_KEY_BACKUP = STORAGE_KEY + "_backup";
+
+// --- Robust persistence for iOS PWA / in-app browsers ---
+// We persist to BOTH localStorage and IndexedDB. On load, we recover from either.
+const IDB_DB = "jorge_sales_pipeline_db";
+const IDB_STORE = "kv";
+
+function canUseLocalStorage(){
+  try{
+    const k = "__ls_test__";
+    localStorage.setItem(k, "1");
+    localStorage.removeItem(k);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function idb(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key){
+  try{
+    const db = await idb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => reject(req.error);
+    });
+  }catch(e){
+    return null;
+  }
+}
+
+async function idbSet(key, value){
+  try{
+    const db = await idb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      const store = tx.objectStore(IDB_STORE);
+      store.put(value, key);
+    });
+  }catch(e){
+    // ignore
+  }
+}
 
 const COLUMNS = ["CUSTOMER","CALLING","APPOINTMENT","COLLECT FORM","ACCOUNT PROCESS","FOLLOW UP 1ST DEAL","DONE"];
 
-let state = JSON.parse(localStorage.getItem(STORAGE_KEY)||"null") || {cards:[]};
+let state = {cards:[]};
+
+async function loadState(){
+  // 1) Try localStorage
+  if (canUseLocalStorage()){
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY_BACKUP);
+    if (raw){
+      try{
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.cards)) return parsed;
+      }catch(e){ /* ignore */ }
+    }
+  }
+
+  // 2) Try IndexedDB
+  const raw2 = await idbGet(STORAGE_KEY);
+  if (raw2){
+    try{
+      const parsed = JSON.parse(raw2);
+      if (parsed && Array.isArray(parsed.cards)) return parsed;
+    }catch(e){ /* ignore */ }
+  }
+
+  return {cards:[]};
+}
 
 const board = document.getElementById("board");
 const overlay = document.getElementById("overlay");
@@ -258,9 +357,16 @@ COLUMNS.forEach(c=>{
 
 function save(){
   const data = JSON.stringify(state);
-  localStorage.setItem(STORAGE_KEY, data);
-  // rolling backup (extra safety)
-  localStorage.setItem(STORAGE_KEY + "_backup", data);
+  // localStorage (if available)
+  if (canUseLocalStorage()){
+    try{
+      localStorage.setItem(STORAGE_KEY, data);
+      localStorage.setItem(STORAGE_KEY_BACKUP, data);
+    }catch(e){ /* ignore */ }
+  }
+
+  // IndexedDB fallback/secondary store
+  idbSet(STORAGE_KEY, data);
 }
 
 function render(){
@@ -395,7 +501,16 @@ document.getElementById("resetBtn").onclick=()=>{
 };
 // -------------------------------------------
 
-render();
+(async () => {
+  state = await loadState();
+  render();
+
+  // Extra safety: save when app goes to background
+  window.addEventListener("pagehide", () => { try{ save(); }catch(e){} });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") { try{ save(); }catch(e){} }
+  });
+})();
 </script>
 </body>
 </html>
