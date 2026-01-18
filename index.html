@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JORGE SALES PIPELINE</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+  }
+</script>
+
+<style>
+  :root {
+    --bg:#f5f7fb;
+    --card:#f0f3ff;
+    --col:#ffffff;
+    --shadow:0 2px 10px rgba(0,0,0,.10);
+    --radius:12px;
+    --gap:12px;
+    --muted:#5b667a;
+    --line:rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box}
+  body{font-family: Arial, sans-serif; background:var(--bg); margin:0; padding:16px; color:#0f172a;}
+  header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  h1{margin:0; font-size:22px;}
+  .sub{margin:4px 0 0; color:var(--muted); font-size:13px; line-height:1.35}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  button{
+    border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 10px;
+    cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.06); font-size:13px;
+  }
+  button.primary{background:#111827; color:#fff; border-color:#111827;}
+  button.danger{background:#fee2e2; border-color:#fecaca;}
+  .board{display:flex; gap:var(--gap); overflow-x:auto; padding:12px 0 8px;}
+  .column{
+    background:var(--col); border-radius:var(--radius); padding:10px; min-width:300px;
+    box-shadow:var(--shadow); border:1px solid var(--line);
+  }
+  .colHead{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:2px 0 10px;}
+  .colTitle{font-size:14px; font-weight:800;}
+  .count{font-size:12px; color:var(--muted); background:#eef1f8; padding:2px 10px; border-radius:999px;}
+  .dropzone{min-height:36px; padding:2px; border-radius:10px;}
+  .dropzone.dragover{outline:2px dashed #94a3b8; background:#f8fafc;}
+  .card{
+    background:var(--card); border-radius:12px; padding:10px; margin-bottom:10px;
+    border:1px solid rgba(0,0,0,.06);
+  }
+  .card[draggable="true"]{cursor:grab;}
+  .card:active{cursor:grabbing;}
+  .cardTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+  .card strong{display:block; font-size:13px; margin-bottom:3px;}
+  .meta{color:var(--muted); font-size:12px; line-height:1.35; margin-top:6px; white-space:pre-wrap;}
+  .badges{margin-top:8px;}
+  .badge{display:inline-block; padding:3px 9px; border-radius:999px; font-size:12px; margin:0 6px 6px 0; border:1px solid rgba(0,0,0,.06); background:#e3e7ff;}
+  .badge.green{background:#dff7e7;}
+  .badge.yellow{background:#fff0cc;}
+  .badge.red{background:#ffe0e0;}
+  .badge.blue{background:#dceeff;}
+  .cardBtns{display:flex; gap:6px;}
+  .iconBtn{padding:6px 8px; border-radius:10px; font-size:12px;}
+  .footer{margin-top:10px; color:#64748b; font-size:12px; line-height:1.4;}
+  /* Modal */
+  .overlay{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff; width:min(760px, 100%); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.25); border:1px solid var(--line); overflow:hidden;}
+  .modalHeader{padding:14px 14px 10px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .modalTitle{font-weight:900;}
+  .modalBody{padding:14px; display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .modalBody .full{grid-column:1 / -1;}
+  label{font-size:12px; color:#475569; display:block; margin-bottom:6px;}
+  input, textarea, select{
+    width:100%; padding:9px 10px; border-radius:10px; border:1px solid var(--line); outline:none;
+    font-size:13px; background:#fff;
+  }
+  textarea{min-height:110px; resize:vertical;}
+  .modalFooter{padding:12px 14px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;}
+  .small{font-size:12px; color:#64748b;}
+  @media (max-width:760px){
+    .modalBody{grid-template-columns:1fr;}
+  }
+
+.badge.quality-Potential{background:#dff7e7}
+.badge.quality-Waiting{background:#fff0cc}
+.badge.quality-Red\ Flag{background:#ffe0e0}
+.badge.quality-No\ Chance{background:#e5e7eb}
+
+
+
+
+.badge.quality-Key-Customer{
+  background:linear-gradient(135deg,#facc15,#f59e0b);
+  color:#111827;
+  font-weight:800;
+  box-shadow:0 0 0 1px rgba(0,0,0,.08), 0 0 12px rgba(250,204,21,.85);
+}
+
+
+.badge.quality-Potential{background:#dff7e7}
+.badge.quality-Waiting{background:#fff0cc}
+.badge.quality-Red-Flag{background:#ffe0e0}
+.badge.quality-No-Chance{background:#e5e7eb}
+
+
+
+  /* PWA Mobile Tweaks */
+  button{min-height:44px}
+  .board{-webkit-overflow-scrolling:touch; scroll-snap-type:x mandatory;}
+  .column{scroll-snap-align:start;}
+  @media (max-width: 480px){
+    body{padding:12px}
+    .column{min-width:280px}
+    h1{font-size:20px}
+  }
+
+
+
+/* Mobile tweaks (keep same look, just more finger-friendly) */
+@media (max-width: 600px){
+  body{padding:12px;}
+  button{min-height:44px; padding:10px 12px;}
+  .column{min-width:280px;}
+  .modal{width:96vw; max-height:90vh;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>JORGE SALES PIPELINE</h1>
+    <p class="sub">
+      CUSTOMER → CALLING → APPOINTMENT → COLLECT FORM → ACCOUNT PROCESS → FOLLOW UP 1ST DEAL → DONE
+    </p>
+  </div>
+  <div class="toolbar">
+    <button class="primary" id="addBtn">+ Add Customer</button>
+    <button id="exportBtn">Export JSON</button>
+    <button id="importBtn">Import JSON</button>
+    <button class="danger" id="resetBtn">Reset</button>
+  </div>
+</header>
+
+<div class="board" id="board"></div>
+
+<div class="footer">
+  <strong>Save Notes:</strong> This app auto-saves to <b>this browser/device</b> (localStorage). To prevent data loss when changing phone/computer or clearing browser data, click <b>Export JSON</b> regularly as backup.
+</div>
+
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modalHeader">
+      <div class="modalTitle">Edit Customer</div>
+      <button id="closeModal" class="iconBtn">Close</button>
+    </div>
+    <div class="modalBody">
+      <div class="full">
+        <label>Company Name</label>
+        <input id="f_company" />
+      </div>
+
+      <div>
+        <label>PIC Name</label>
+        <input id="f_pic" />
+      </div>
+      <div>
+        <label>Phone / WhatsApp</label>
+        <input id="f_phone" />
+      </div>
+
+      <div>
+        <label>Column</label>
+        <select id="f_col"></select>
+      </div>
+      <div>
+        <label>Follow-up / Meeting</label>
+        <input id="f_follow" />
+      </div>
+
+      <div class="full">
+        <label>Address</label>
+        <textarea id="f_addr"></textarea>
+      </div>
+
+      <div>
+        <label>Project Status</label>
+        <select id="f_pstatus">
+          <option>On-going Project</option>
+          <option>Tendering / Quoting</option>
+          <option>No Project (Temporarily)</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Customer Quality</label>
+        <select id="f_quality">
+          <option>Potential</option>
+                    <option>Key Customer</option>
+<option>Waiting</option>
+          <option>Red Flag</option>
+          <option>No Chance</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label>Project Details</label>
+        <textarea id="f_notes"></textarea>
+      </div>
+
+      <div class="full">
+        <label>Remark (any other customer info)</label>
+        <textarea id="f_remark" placeholder="Attitude, payment habit, background, internal notes, etc."></textarea>
+      </div>
+    </div>
+    <div class="modalFooter">
+      <button id="deleteBtn" class="danger">Delete Customer</button>
+      <button id="saveBtn" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="application/json" style="display:none"/>
+
+<script>
+const STORAGE_KEY = "jorge_sales_pipeline_app_v3";
+
+const COLUMNS = ["CUSTOMER","CALLING","APPOINTMENT","COLLECT FORM","ACCOUNT PROCESS","FOLLOW UP 1ST DEAL","DONE"];
+
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY)||"null") || {cards:[]};
+
+const board = document.getElementById("board");
+const overlay = document.getElementById("overlay");
+
+const f_company = document.getElementById("f_company");
+const f_pic = document.getElementById("f_pic");
+const f_phone = document.getElementById("f_phone");
+const f_col = document.getElementById("f_col");
+const f_follow = document.getElementById("f_follow");
+const f_addr = document.getElementById("f_addr");
+const f_pstatus = document.getElementById("f_pstatus");
+const f_quality = document.getElementById("f_quality");
+const f_notes = document.getElementById("f_notes");
+const f_remark = document.getElementById("f_remark");
+
+let editing = null;
+
+COLUMNS.forEach(c=>{
+  const o=document.createElement("option"); o.value=o.textContent=c; f_col.appendChild(o);
+});
+
+function save(){
+  const data = JSON.stringify(state);
+  localStorage.setItem(STORAGE_KEY, data);
+  // rolling backup (extra safety)
+  localStorage.setItem(STORAGE_KEY + "_backup", data);
+}
+
+function render(){
+  board.innerHTML="";
+  COLUMNS.forEach(col=>{
+    const colDiv=document.createElement("div");
+    colDiv.className="column";
+    colDiv.innerHTML=`<div class='colHead'><div class='colTitle'>${col}</div><div class='count'>${state.cards.filter(c=>c.col===col).length}</div></div>`;
+    const zone=document.createElement("div"); zone.className="dropzone";
+    zone.ondragover=e=>e.preventDefault();
+    zone.ondrop=e=>{
+      const id=e.dataTransfer.getData("id");
+      const card=state.cards.find(c=>c.id==id);
+      if(card){card.col=col; save(); render();}
+    };
+    state.cards.filter(c=>c.col===col).forEach(card=>{
+      const el=document.createElement("div");
+      el.className="card"; el.draggable=true;
+      el.ondragstart=e=>e.dataTransfer.setData("id",card.id);
+      el.onclick=()=>edit(card);
+      el.innerHTML=`<strong>${card.company}</strong>
+        <div class='meta'>${card.notes||""}</div><div class='badges'><span class='badge quality-${(card.quality||"Potential").replace(/\s+/g,"-")}'>${card.quality||"Potential"}</span></div>
+        <div class='meta'>${card.remark||""}</div>`;
+      zone.appendChild(el);
+    });
+    colDiv.appendChild(zone); board.appendChild(colDiv);
+  });
+}
+
+function edit(card){
+  editing=card;
+  f_company.value=card.company||"";
+  f_pic.value=card.pic||"";
+  f_phone.value=card.phone||"";
+  f_col.value=card.col;
+  f_follow.value=card.follow||"";
+  f_addr.value=card.addr||"";
+  f_pstatus.value=card.pstatus||"On-going Project";
+  f_quality.value=card.quality||"Potential";
+  f_notes.value=card.notes||"";
+  f_remark.value=card.remark||"";
+  overlay.classList.add("show");
+}
+
+document.getElementById("addBtn").onclick=()=>{
+  editing={id:Date.now(),col:"CUSTOMER"};
+  edit(editing);
+};
+
+document.getElementById("closeModal").onclick=()=>overlay.classList.remove("show");
+
+document.getElementById("saveBtn").onclick=()=>{
+  Object.assign(editing,{
+    company:f_company.value,
+    pic:f_pic.value,
+    phone:f_phone.value,
+    col:f_col.value,
+    follow:f_follow.value,
+    addr:f_addr.value,
+    pstatus:f_pstatus.value,
+    quality:f_quality.value,
+    notes:f_notes.value,
+    remark:f_remark.value
+  });
+  if(!state.cards.find(c=>c.id===editing.id)) state.cards.push(editing);
+  save(); render(); overlay.classList.remove("show");
+};
+
+
+document.getElementById("deleteBtn").onclick=()=>{
+  if(!editing) return;
+  const name = (editing.company||"this customer").trim();
+  const ok = confirm(`Delete "${name}"? This will remove ALL info for this customer.`);
+  if(!ok) return;
+
+  // If it's a newly-created card not yet saved, just close.
+  if(!state.cards.find(c=>c.id===editing.id)){
+    overlay.classList.remove("show");
+    return;
+  }
+
+  state.cards = state.cards.filter(c=>c.id!==editing.id);
+  save(); render();
+  overlay.classList.remove("show");
+};
+
+
+// --------- Export / Import / Reset ----------
+function download(filename, text){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([text],{type:"application/json"}));
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 0);
+}
+
+document.getElementById("exportBtn").onclick=()=>{
+  const stamp = new Date().toISOString().slice(0,10);
+  const payload = JSON.stringify(state, null, 2);
+  download(`jorge_customers_${stamp}.json`, payload);
+};
+
+document.getElementById("importBtn").onclick=()=>{
+  document.getElementById("fileInput").value="";
+  document.getElementById("fileInput").click();
+};
+
+document.getElementById("fileInput").onchange=(e)=>{
+  const file=e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || !Array.isArray(data.cards)) throw new Error("Invalid file format");
+      state=data;
+      save(); render();
+      alert("Import success ✅");
+    }catch(err){
+      alert("Import failed: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+};
+
+document.getElementById("resetBtn").onclick=()=>{
+  const ok = confirm("Reset ALL customers? (This will clear everything in this browser)");
+  if(!ok) return;
+  state={cards:[]};
+  save(); render();
+};
+// -------------------------------------------
+
+render();
+</script>
+</body>
+</html>
